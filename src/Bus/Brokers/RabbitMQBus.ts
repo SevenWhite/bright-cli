@@ -351,9 +351,6 @@ export class RabbitMQBus implements Bus {
         // password = credentials.repeater.id
       }
 
-      // eslint-disable-next-line no-console
-      console.log('prepare url', url, username, password);
-
       url.auth = `${username}:${password}`;
     }
 
