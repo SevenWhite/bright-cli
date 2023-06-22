@@ -141,8 +141,6 @@ export class DefaultRepeaterLauncher implements RepeaterLauncher {
 
     this.info.version = "10.0.0"
 
-    logger.log('Starting the Repeater (%s)...', this.info.version);
-
     const credentials = this.profiles.readActiveProfile()
 
     if (repeaterId) {
@@ -150,6 +148,8 @@ export class DefaultRepeaterLauncher implements RepeaterLauncher {
     } else if (credentials) {
       this.repeaterId = credentials.repeater.id
     }
+
+    logger.log('Starting the Repeater (%s)... repeatedId (%s)', this.info.version, this.repeaterId);
 
     await this.bus.init();
 
