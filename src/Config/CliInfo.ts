@@ -4,7 +4,7 @@ import { readFileSync } from 'fs';
 
 export class CliInfo {
   public readonly cwd: string;
-  public readonly version: string;
+  public version: string;
   private _pkgPath: string;
 
   constructor(cwd: string = process.cwd()) {

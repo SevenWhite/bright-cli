@@ -27,9 +27,10 @@ import {
   Platform,
   ReadlinePlatform,
   TCPConnectivity,
-  TracerouteConnectivity,
-  Tokens
+  Tokens,
+  TracerouteConnectivity
 } from '../Wizard';
+import { FSProfiles, Init, InitPlatform, Profiles } from '../Init';
 import {
   BreakpointFactory,
   DefaultBreakpointFactory,
@@ -108,6 +109,11 @@ container
     {
       useClass: FSTokens
     },
+    { lifecycle: Lifecycle.Singleton }
+  )
+  .register(
+    Profiles,
+    { useClass: FSProfiles },
     { lifecycle: Lifecycle.Singleton }
   )
   .register(
@@ -193,6 +199,11 @@ container
   .register<Platform>(
     Platform,
     { useClass: ReadlinePlatform },
+    { lifecycle: Lifecycle.Singleton }
+  )
+  .register<InitPlatform>(
+    InitPlatform,
+    { useClass: Init },
     { lifecycle: Lifecycle.Singleton }
   )
   .register<ConfigReader>(

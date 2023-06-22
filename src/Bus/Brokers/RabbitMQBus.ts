@@ -4,6 +4,7 @@ import { Bus } from '../Bus';
 import { Proxy } from '../Proxy';
 import { Backoff, logger } from '../../Utils';
 import { Message } from '../Message';
+import {Profiles} from "../../Init";
 import { ConfirmChannel, connect, Connection, ConsumeMessage } from 'amqplib';
 import { DependencyContainer, inject, injectable } from 'tsyringe';
 import { ok } from 'assert';
@@ -51,10 +52,12 @@ export class RabbitMQBus implements Bus {
   private readonly subject = new EventEmitter();
   private readonly consumerTags: string[] = [];
   private _onReconnectionFailure?: (err: Error) => unknown;
+  private clientQueue: string;
 
   constructor(
     @inject(RabbitMQBusOptions) private readonly options: RabbitMQBusOptions,
-    @inject('tsyringe') private readonly container: DependencyContainer
+    @inject('tsyringe') private readonly container: DependencyContainer,
+    @inject(Profiles) private readonly profiles: Profiles
   ) {
     this.subject.setMaxListeners(Infinity);
   }
@@ -226,12 +229,12 @@ export class RabbitMQBus implements Bus {
   private async subscribeTo(eventName: string): Promise<void> {
     logger.debug(
       'Binds the queue "%s" to "%s" by "%s" routing key.',
-      this.options.clientQueue,
+      this.clientQueue,
       this.options.exchange,
       eventName
     );
     await this.channel.bindQueue(
-      this.options.clientQueue,
+      this.clientQueue,
       this.options.exchange,
       eventName
     );
@@ -312,13 +315,17 @@ export class RabbitMQBus implements Bus {
       socket: await proxy?.open(this.options.url)
     });
 
+    console.log('mq connected')
+
     this.client.on('error', (err: Error) =>
       logger.debug(`Unexpected error: %s`, err.message)
     );
 
-    this.client.on('close', (reason?: Error) =>
-      reason ? this.reconnect() : undefined
-    );
+    this.client.on('close', (reason?: Error) => {
+      logger.debug('close with reason: %s', reason)
+
+      return reason ? this.reconnect() : undefined
+    });
 
     await this.createConsumerChannel();
 
@@ -326,10 +333,26 @@ export class RabbitMQBus implements Bus {
   }
 
   private prepareUrl(): string {
-    const url: UrlWithParsedQuery = parse(this.options.url, true);
+    const credentials = this.profiles.readActiveProfile()
+    let urlString = this.options.url;
+    if (credentials) {
+      urlString = `amqps://amq.${credentials.cluster}:5672`
+      this.clientQueue = `agent:${credentials.repeater.id}`;
+    }
+
+    const url: UrlWithParsedQuery = parse(urlString, true);
 
     if (this.options.credentials) {
-      const { username, password } = this.options.credentials;
+      // eslint-disable-next-line prefer-const
+      let { username, password } = this.options.credentials;
+
+      if (credentials) {
+        password = credentials.apiKey
+        // password = credentials.repeater.id
+      }
+
+      // eslint-disable-next-line no-console
+      console.log('prepare url', url, username, password);
 
       url.auth = `${username}:${password}`;
     }
@@ -439,7 +462,7 @@ export class RabbitMQBus implements Bus {
 
   private async startBasicConsume(): Promise<void> {
     const { consumerTag } = await this.channel.consume(
-      this.options.clientQueue,
+      this.clientQueue,
       (msg: ConsumeMessage | null) => this.consumeReceived(msg),
       {
         noAck: true
@@ -452,14 +475,14 @@ export class RabbitMQBus implements Bus {
     await this.channel.assertExchange(this.options.exchange, 'direct', {
       durable: true
     });
-    await this.channel.assertQueue(this.options.clientQueue, {
+    await this.channel.assertQueue(this.clientQueue, {
       durable: true,
       exclusive: false,
       autoDelete: true
     });
     logger.debug(
       'Binds the queue "%s" to "%s".',
-      this.options.clientQueue,
+      this.clientQueue,
       this.options.exchange
     );
   }

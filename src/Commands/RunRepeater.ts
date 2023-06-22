@@ -12,11 +12,17 @@ export class RunRepeater implements CommandModule {
 
   public builder(argv: Argv): Argv {
     return argv
+      .option('profile', {
+        alias: 'p',
+        describe: 'Profile',
+        default: 'default',
+        requiresArg: true,
+      })
       .option('token', {
         alias: 't',
         describe: 'Bright API-key',
         requiresArg: true,
-        demandOption: true
+        demandOption: false
       })
       .option('id', {
         alias: 'agent',
@@ -24,7 +30,7 @@ export class RunRepeater implements CommandModule {
           'ID of an existing repeater which you want to use to run a new scan.',
         type: 'string',
         requiresArg: true,
-        demandOption: true
+        demandOption: false
       })
       .option('scripts', {
         alias: 'S',
@@ -141,6 +147,8 @@ export class RunRepeater implements CommandModule {
       }, true)
       .exitProcess(false)
       .check((args: Arguments) => {
+        if (!args.id) return true;
+
         const id = args.id as string;
         if (!Helpers.isShortUUID(id) && !Helpers.isUUID(id)) {
           throw new Error(

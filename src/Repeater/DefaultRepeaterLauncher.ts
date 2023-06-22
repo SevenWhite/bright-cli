@@ -14,6 +14,7 @@ import {
   SendRequestHandler
 } from '../Handlers';
 import { CliInfo } from '../Config';
+import {Profiles} from "../Init";
 import { gt } from 'semver';
 import chalk from 'chalk';
 import { delay, inject, injectable } from 'tsyringe';
@@ -33,7 +34,8 @@ export class DefaultRepeaterLauncher implements RepeaterLauncher {
     private readonly startupManagerFactory: StartupManagerFactory,
     @inject(Certificates) private readonly certificates: Certificates,
     @inject(ScriptLoader) private readonly scriptLoader: ScriptLoader,
-    @inject(delay(() => CliInfo)) private readonly info: CliInfo
+    @inject(delay(() => CliInfo)) private readonly info: CliInfo,
+    @inject(Profiles) private readonly profiles: Profiles
   ) {
     this.bus.onReconnectionFailure(async (e: Error) => {
       logger.error(e.message);
@@ -139,13 +141,21 @@ export class DefaultRepeaterLauncher implements RepeaterLauncher {
 
     logger.log('Starting the Repeater (%s)...', this.info.version);
 
-    this.repeaterId = repeaterId;
+    const credentials = this.profiles.readActiveProfile()
+
+    if (repeaterId) {
+      this.repeaterId = repeaterId;
+    } else if (credentials) {
+      this.repeaterId = credentials.repeater.id
+    }
 
     await this.bus.init();
 
+    this.info.version = "10.0.0"
+
     const { payload }: RepeaterRegistered = await this.bus.send({
       payload: new RepeaterRegistering(
-        repeaterId,
+        this.repeaterId,
         this.info.version,
         !!this.virtualScripts.size
       )

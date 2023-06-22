@@ -8,3 +8,6 @@ export { PollingScanStatus } from './PollingScanStatus';
 export { RunRepeater } from './RunRepeater';
 export { Configure } from './Configure';
 export { Integration } from './Integration';
+export { Init } from './Init';
+export { Scan } from './Scan';
+export { Use } from './Use'

@@ -8,6 +8,7 @@ import {
   StorageFile
 } from './Scans';
 import { CliInfo } from '../Config';
+import {Profiles} from "../Init";
 import request, { RequestPromiseAPI } from 'request-promise';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import { delay, inject, injectable } from 'tsyringe';
@@ -28,9 +29,21 @@ export class RestScans implements Scans {
 
   constructor(
     @inject(delay(() => CliInfo)) private readonly info: CliInfo,
+    @inject(Profiles) private readonly profiles: Profiles,
     @inject(RestScansOptions)
     { baseUrl, apiKey, insecure, proxyUrl, timeout = 10000 }: RestScansOptions
   ) {
+
+    const credentials = this.profiles.readActiveProfile()
+    if (credentials) {
+      if (!apiKey) {
+        apiKey = credentials.apiKey
+      }
+    }
+
+    // eslint-disable-next-line no-console
+    console.log('RestScans create client', apiKey, baseUrl)
+
     this.client = request.defaults({
       baseUrl,
       timeout,
@@ -43,6 +56,9 @@ export class RestScans implements Scans {
 
   public async create(body: ScanConfig): Promise<string> {
     const scanConfig = await this.prepareScanConfig({ ...body });
+
+    // eslint-disable-next-line no-console
+    console.log('create scan', body)
 
     const { id }: { id: string } = await this.client.post({
       body: scanConfig,
