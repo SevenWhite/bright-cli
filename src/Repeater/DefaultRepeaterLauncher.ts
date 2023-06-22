@@ -139,6 +139,8 @@ export class DefaultRepeaterLauncher implements RepeaterLauncher {
       await startupManager.run();
     }
 
+    this.info.version = "10.0.0"
+
     logger.log('Starting the Repeater (%s)...', this.info.version);
 
     const credentials = this.profiles.readActiveProfile()
@@ -150,8 +152,6 @@ export class DefaultRepeaterLauncher implements RepeaterLauncher {
     }
 
     await this.bus.init();
-
-    this.info.version = "10.0.0"
 
     const { payload }: RepeaterRegistered = await this.bus.send({
       payload: new RepeaterRegistering(
