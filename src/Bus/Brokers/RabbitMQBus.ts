@@ -315,8 +315,6 @@ export class RabbitMQBus implements Bus {
       socket: await proxy?.open(this.options.url)
     });
 
-    console.log('mq connected')
-
     this.client.on('error', (err: Error) =>
       logger.debug(`Unexpected error: %s`, err.message)
     );
